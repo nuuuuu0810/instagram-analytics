@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        h1 { text-align: center; }
+        canvas { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>📊 Instagram 監視ダッシュボード</h1>
+    <div style="text-align: center;">
+        <p>最新のフォロワー数: <strong id="current-followers">-</strong></p>
+    </div>
+    <canvas id="myChart"></canvas>
+
+    <script>
+        async function loadData() {
+            // キャッシュを防ぐためにタイムスタンプを付与
+            const response = await fetch('data.json?t=' + new Date().getTime());
+            const data = await response.json();
+
+            if (data.length === 0) return;
+
+            // 最新データの表示
+            const latest = data[data.length - 1];
+            document.getElementById('current-followers').innerText = latest.followers;
+
+            // グラフ用データの整形
+            const labels = data.map(d => d.timestamp);
+            const followers = data.map(d => d.followers);
+            const posts = data.map(d => d.posts);
+
+            const ctx = document.getElementById('myChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'フォロワー数',
+                            data: followers,
+                            borderColor: 'rgb(255, 99, 132)',
+                            yAxisID: 'y',
+                        },
+                        {
+                            label: '投稿数',
+                            data: posts,
+                            borderColor: 'rgb(54, 162, 235)',
+                            yAxisID: 'y1',
+                        }
+                    ]
+                },
+                options: {
+                    scales: {
+                        y: { type: 'linear', display: true, position: 'left' },
+                        y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } }
+                    }
+                }
+            });
+        }
+        loadData();
+    </script>
+</body>
+</html>
