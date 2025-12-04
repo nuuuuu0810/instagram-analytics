@@ -1,0 +1,38 @@
+name: Insta Check
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # 1時間ごとに実行
+  workflow_dispatch:      # 手動実行ボタンも有効にする
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v3
+
+      - name: Pythonのセットアップ
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: ライブラリのインストール
+        run: pip install instaloader
+
+      - name: スクリプトの実行
+        env:
+          SESSION_ID: ${{ secrets.SESSION_ID }}
+        run: python collect.py
+
+      - name: 変更を保存してコミット
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add data.json
+          # 変更がない場合はエラーにせず終了
+          git commit -m "Update stats" || exit 0
+          git push
