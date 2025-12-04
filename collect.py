@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 
 # 監視対象のID
-TARGET = "mais0on"  # ←ここを監視したいIDに変える
+TARGET = "meda_pizza1118"  # ←ここを監視したいIDに変える
 
 def main():
     # セッションIDの読み込み
