@@ -3,54 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Insta Monitor</title>
+    <title>Instagram 監視ダッシュボード</title>
+    <!-- Chart.js ライブラリの読み込み -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>body{padding:20px;max-width:800px;margin:0 auto;font-family:sans-serif;}</style>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 900px; margin: 0 auto; color: #333; }
+        h1 { text-align: center; margin-bottom: 10px; }
+        .stats-box {
+            display: flex;
+            justify-content: space-around;
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .stat-item { text-align: center; }
+        .stat-label { font-size: 0.9em; color: #666; }
+        .stat-value { font-size: 1.5em; font-weight: bold; }
+        .last-update { text-align: right; font-size: 0.8em; color: #888; margin-bottom: 5px; }
+    </style>
 </head>
 <body>
-    <h2 style="text-align:center">Instagram 監視グラフ</h2>
-    <div style="text-align:center; margin-bottom: 20px;">
-        最新フォロワー: <strong id="val-fol">-</strong> / 
-        投稿: <strong id="val-post">-</strong>
-        <br><small id="last-update"></small>
+    <h1>📊 Instagram 監視グラフ</h1>
+    
+    <div class="last-update" id="time-display">更新日時: -</div>
+
+    <!-- 最新データの表示エリア -->
+    <div class="stats-box">
+        <div class="stat-item">
+            <div class="stat-label">フォロワー</div>
+            <div class="stat-value" id="val-followers">-</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">フォロー中</div>
+            <div class="stat-value" id="val-following">-</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">投稿数</div>
+            <div class="stat-value" id="val-posts">-</div>
+        </div>
     </div>
-    <canvas id="chart"></canvas>
+
+    <!-- グラフエリア -->
+    <canvas id="myChart"></canvas>
+
     <script>
-        async function draw() {
-            const res = await fetch('data.json?t=' + Date.now());
-            const data = await res.json();
-            if(!data.length) return;
+        async function loadAndDraw() {
+            try {
+                // キャッシュを防ぐために現在時刻を付与して読み込む
+                const response = await fetch('data.json?t=' + Date.now());
+                if (!response.ok) throw new Error("データが見つかりません");
+                
+                const data = await response.json();
+                if (data.length === 0) return;
 
-            const last = data[data.length - 1];
-            document.getElementById('val-fol').innerText = last.followers;
-            document.getElementById('val-post').innerText = last.posts;
-            document.getElementById('last-update').innerText = "更新: " + last.timestamp;
+                // 最新データを画面上部に表示
+                const latest = data[data.length - 1];
+                document.getElementById('val-followers').innerText = latest.followers.toLocaleString();
+                document.getElementById('val-following').innerText = latest.following.toLocaleString();
+                document.getElementById('val-posts').innerText = latest.posts.toLocaleString();
+                document.getElementById('time-display').innerText = "最終更新: " + latest.timestamp;
 
-            new Chart(document.getElementById('chart'), {
-                type: 'line',
-                data: {
-                    labels: data.map(d => d.timestamp.slice(5)), 
-                    datasets: [{
-                        label: 'フォロワー',
-                        data: data.map(d => d.followers),
-                        borderColor: '#E1306C',
-                        yAxisID: 'y'
-                    }, {
-                        label: '投稿数',
-                        data: data.map(d => d.posts),
-                        borderColor: '#3797EF',
-                        yAxisID: 'y1'
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: { position: 'left' },
-                        y1: { position: 'right', grid: { drawOnChartArea: false } }
+                // グラフ用データの準備
+                const labels = data.map(d => d.timestamp.slice(5)); // "MM-DD HH:mm"
+                
+                const ctx = document.getElementById('myChart').getContext('2d');
+                
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'フォロワー数',
+                                data: data.map(d => d.followers),
+                                borderColor: 'rgb(255, 99, 132)', // ピンク
+                                backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                                tension: 0.2,
+                                yAxisID: 'y', // 左の軸を使う
+                            },
+                            {
+                                label: 'フォロー中',
+                                data: data.map(d => d.following),
+                                borderColor: 'rgb(75, 192, 192)', // 緑
+                                tension: 0.2,
+                                yAxisID: 'y1', // 右の軸を使う
+                            },
+                            {
+                                label: '投稿数',
+                                data: data.map(d => d.posts),
+                                borderColor: 'rgb(54, 162, 235)', // 青
+                                tension: 0.2,
+                                yAxisID: 'y1', // 右の軸を使う
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        scales: {
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                title: { display: true, text: 'フォロワー数' }
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: { display: true, text: 'フォロー・投稿数' },
+                                grid: {
+                                    drawOnChartArea: false, // グリッド線が重ならないようにする
+                                }
+                            }
+                        }
                     }
-                }
-            });
+                });
+            } catch (e) {
+                console.error(e);
+                document.body.innerHTML += "<p style='color:red; text-align:center'>データの読み込みに失敗しました。</p>";
+            }
         }
-        draw();
+
+        loadAndDraw();
     </script>
 </body>
 </html>
