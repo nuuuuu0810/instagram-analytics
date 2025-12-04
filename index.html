@@ -3,67 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instagram Monitor</title>
+    <title>Insta Monitor</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
-        h1 { text-align: center; }
-        canvas { margin-top: 20px; }
-    </style>
+    <style>body{padding:20px;max-width:800px;margin:0 auto;font-family:sans-serif;}</style>
 </head>
 <body>
-    <h1>📊 Instagram 監視ダッシュボード</h1>
-    <div style="text-align: center;">
-        <p>最新のフォロワー数: <strong id="current-followers">-</strong></p>
+    <h2 style="text-align:center">Instagram 監視グラフ</h2>
+    <div style="text-align:center; margin-bottom: 20px;">
+        最新フォロワー: <strong id="val-fol">-</strong> / 
+        投稿: <strong id="val-post">-</strong>
+        <br><small id="last-update"></small>
     </div>
-    <canvas id="myChart"></canvas>
-
+    <canvas id="chart"></canvas>
     <script>
-        async function loadData() {
-            // キャッシュを防ぐためにタイムスタンプを付与
-            const response = await fetch('data.json?t=' + new Date().getTime());
-            const data = await response.json();
+        async function draw() {
+            const res = await fetch('data.json?t=' + Date.now());
+            const data = await res.json();
+            if(!data.length) return;
 
-            if (data.length === 0) return;
+            const last = data[data.length - 1];
+            document.getElementById('val-fol').innerText = last.followers;
+            document.getElementById('val-post').innerText = last.posts;
+            document.getElementById('last-update').innerText = "更新: " + last.timestamp;
 
-            // 最新データの表示
-            const latest = data[data.length - 1];
-            document.getElementById('current-followers').innerText = latest.followers;
-
-            // グラフ用データの整形
-            const labels = data.map(d => d.timestamp);
-            const followers = data.map(d => d.followers);
-            const posts = data.map(d => d.posts);
-
-            const ctx = document.getElementById('myChart').getContext('2d');
-            new Chart(ctx, {
+            new Chart(document.getElementById('chart'), {
                 type: 'line',
                 data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'フォロワー数',
-                            data: followers,
-                            borderColor: 'rgb(255, 99, 132)',
-                            yAxisID: 'y',
-                        },
-                        {
-                            label: '投稿数',
-                            data: posts,
-                            borderColor: 'rgb(54, 162, 235)',
-                            yAxisID: 'y1',
-                        }
-                    ]
+                    labels: data.map(d => d.timestamp.slice(5)), 
+                    datasets: [{
+                        label: 'フォロワー',
+                        data: data.map(d => d.followers),
+                        borderColor: '#E1306C',
+                        yAxisID: 'y'
+                    }, {
+                        label: '投稿数',
+                        data: data.map(d => d.posts),
+                        borderColor: '#3797EF',
+                        yAxisID: 'y1'
+                    }]
                 },
                 options: {
                     scales: {
-                        y: { type: 'linear', display: true, position: 'left' },
-                        y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } }
+                        y: { position: 'left' },
+                        y1: { position: 'right', grid: { drawOnChartArea: false } }
                     }
                 }
             });
         }
-        loadData();
+        draw();
     </script>
 </body>
 </html>
